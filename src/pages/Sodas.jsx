@@ -1,117 +1,170 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-function Sodas() {
-  const [sodas, setSodas] = useState([
-    {
-      name: "Predator",
-      stock: 0,
-      addStock: "",
-    },
-    {
-      name: "Bottle Soda",
-      stock: 0,
-      addStock: "",
-    },
-    {
-      name: "Take Away Soda",
-      stock: 0,
-      addStock: "",
-    },
-  ]);
+export default function Sodas() {
+  const [items, setItems] = useState([]);
 
-  const handleInputChange = (index, value) => {
-    const updatedSodas = [...sodas];
+  const [sodaType, setSodaType] = useState("");
+  const [stock, setStock] = useState("");
 
-    updatedSodas[index].addStock = value;
+  useEffect(() => {
+    fetchItems();
+  }, []);
 
-    setSodas(updatedSodas);
-  };
+  const fetchItems = async () => {
+    const { data, error } = await supabase
+      .from("inventory")
+      .select("*")
+      .eq("category", "sodas")
+      .order("id", { ascending: false });
 
-  const addStock = (index) => {
-    const updatedSodas = [...sodas];
-
-    const addedAmount =
-      Number(updatedSodas[index].addStock);
-
-    if (!addedAmount) {
-      alert("Enter stock amount");
+    if (error) {
+      console.error(error.message);
       return;
     }
 
-    updatedSodas[index].stock += addedAmount;
+    setItems(data || []);
+  };
 
-    updatedSodas[index].addStock = "";
+  const addItem = async () => {
+    if (!sodaType || !stock) {
+      alert("Fill all fields");
+      return;
+    }
 
-    setSodas(updatedSodas);
+    const { error } = await supabase
+      .from("inventory")
+      .insert([
+        {
+          category: "sodas",
+          item_name: sodaType,
+          stock: Number(stock),
+        },
+      ]);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
+
+    setSodaType("");
+    setStock("");
+  };
+
+  const updateStock = async (id, currentStock, change) => {
+    const newStock = currentStock + change;
+
+    if (newStock < 0) {
+      alert("Stock cannot go below zero");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("inventory")
+      .update({
+        stock: newStock,
+      })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
+  };
+
+  const deleteItem = async (id) => {
+    const { error } = await supabase
+      .from("inventory")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
   };
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>Soda Inventory</h1>
 
-      <table
-        border="1"
-        cellPadding="10"
-        style={tableStyle}
-      >
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          placeholder="Soda Type"
+          value={sodaType}
+          onChange={(e) => setSodaType(e.target.value)}
+        />
+
+        <input
+          type="number"
+          placeholder="Current Stock"
+          value={stock}
+          onChange={(e) => setStock(e.target.value)}
+        />
+
+        <button onClick={addItem}>
+          Add Soda
+        </button>
+      </div>
+
+      <table border="1" cellPadding="10">
         <thead>
           <tr>
             <th>Soda Type</th>
             <th>Current Stock</th>
-            <th>Add Stock</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
-          {sodas.map((soda, index) => (
-            <tr key={index}>
-              <td>{soda.name}</td>
-
-              <td>{soda.stock}</td>
-
-              <td>
-                <input
-                  type="number"
-                  placeholder="Add stock"
-                  value={soda.addStock}
-                  onChange={(e) =>
-                    handleInputChange(
-                      index,
-                      e.target.value
-                    )
-                  }
-                  style={inputStyle}
-                />
-
-                <button
-                  onClick={() => addStock(index)}
-                  style={buttonStyle}
-                >
-                  Add
-                </button>
+          {items.length === 0 ? (
+            <tr>
+              <td colSpan="3">
+                No soda inventory found
               </td>
             </tr>
-          ))}
+          ) : (
+            items.map((item) => (
+              <tr key={item.id}>
+                <td>{item.item_name}</td>
+                <td>{item.stock}</td>
+
+                <td>
+                  <button
+                    onClick={() =>
+                      updateStock(item.id, item.stock, -1)
+                    }
+                  >
+                    -1
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      updateStock(item.id, item.stock, 1)
+                    }
+                    style={{ marginLeft: "5px" }}
+                  >
+                    +1
+                  </button>
+
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    style={{ marginLeft: "5px" }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
   );
 }
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  backgroundColor: "white",
-};
-
-const inputStyle = {
-  padding: "8px",
-  marginRight: "10px",
-};
-
-const buttonStyle = {
-  padding: "8px 15px",
-  cursor: "pointer",
-};
-
-export default Sodas;

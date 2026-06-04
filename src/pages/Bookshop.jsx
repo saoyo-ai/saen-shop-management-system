@@ -1,57 +1,43 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-function Bookshop() {
+export default function Bookshop() {
+  const navigate = useNavigate();
+
   return (
     <div style={{ padding: "20px" }}>
       <h1>Bookshop Categories</h1>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "20px",
-          marginTop: "30px",
-        }}
-      >
-        <Link to="/exercise-books" style={linkStyle}>
-          <div style={cardStyle}>Exercise Books</div>
-        </Link>
+      <div style={{ display: "grid", gap: "10px", maxWidth: "350px" }}>
+        <button
+          onClick={() => navigate("/exercise-books")}
+        >
+          Exercise Books
+        </button>
 
-        <Link to="/setbooks" style={linkStyle}>
-          <div style={cardStyle}>Setbooks</div>
-        </Link>
+        <button
+          onClick={() => navigate("/setbooks")}
+        >
+          Setbooks
+        </button>
 
-        <Link to="/textbooks" style={linkStyle}>
-          <div style={cardStyle}>Textbooks</div>
-        </Link>
+        <button
+          onClick={() => navigate("/textbooks")}
+        >
+          Textbooks
+        </button>
 
-        <Link to="/junior-books" style={linkStyle}>
-          <div style={cardStyle}>
-            Junior & Lower Primary Books
-          </div>
-        </Link>
+        <button
+          onClick={() => navigate("/junior-books")}
+        >
+          Junior & Lower Primary Books
+        </button>
 
-        <Link to="/other-stationaries" style={linkStyle}>
-          <div style={cardStyle}>Other Stationaries</div>
-        </Link>
+        <button
+          onClick={() => navigate("/stationeries")}
+        >
+          Other Stationeries
+        </button>
       </div>
     </div>
   );
 }
-
-const cardStyle = {
-  backgroundColor: "white",
-  padding: "30px",
-  borderRadius: "10px",
-  boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-  textAlign: "center",
-  fontSize: "20px",
-  fontWeight: "bold",
-  color: "black",
-};
-
-const linkStyle = {
-  textDecoration: "none",
-};
-
-export default Bookshop;

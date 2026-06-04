@@ -1,27 +1,21 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-function Records() {
+export default function Records() {
+  const navigate = useNavigate();
+
   return (
     <div style={{ padding: "20px" }}>
-      <h1>Records</h1>
+      <h1>Records System</h1>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          marginTop: "30px",
-        }}
-      >
-        <Link to="/daily-records">
-          <button>Daily Records</button>
-        </Link>
+      <div style={{ display: "grid", gap: "10px", maxWidth: "300px" }}>
+        <button onClick={() => navigate("/daily-records")}>
+          Daily Records
+        </button>
 
-        <Link to="/record-history">
-          <button>Record History</button>
-        </Link>
+        <button onClick={() => navigate("/record-history")}>
+          Records History
+        </button>
       </div>
     </div>
   );
 }
-
-export default Records;

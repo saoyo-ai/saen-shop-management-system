@@ -1,6 +1,8 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-function SchoolUniforms() {
+export default function SchoolUniforms() {
+  const navigate = useNavigate();
+
   return (
     <div style={{ padding: "20px" }}>
       <h1>School Uniforms</h1>
@@ -8,57 +10,39 @@ function SchoolUniforms() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "20px",
-          marginTop: "30px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "15px",
+          marginTop: "20px",
         }}
       >
-        <Link to="/sweaters" style={linkStyle}>
-          <div style={cardStyle}>Sweaters</div>
-        </Link>
+        <button onClick={() => navigate("/sweaters")}>
+          Sweaters
+        </button>
 
-        <Link to="/trousers" style={linkStyle}>
-          <div style={cardStyle}>Trousers</div>
-        </Link>
+        <button onClick={() => navigate("/ties")}>
+          Ties
+        </button>
 
-        <Link to="/shirts" style={linkStyle}>
-          <div style={cardStyle}>Shirts</div>
-        </Link>
+        <button onClick={() => navigate("/shirts")}>
+          Shirts
+        </button>
 
-        <Link to="/skirts" style={linkStyle}>
-          <div style={cardStyle}>Skirts</div>
-        </Link>
+        <button onClick={() => navigate("/trousers")}>
+          Trousers
+        </button>
 
-        <Link to="/ties" style={linkStyle}>
-          <div style={cardStyle}>Ties</div>
-        </Link>
+        <button onClick={() => navigate("/skirts")}>
+          Skirts
+        </button>
 
-        <Link to="/tracksuits" style={linkStyle}>
-          <div style={cardStyle}>Track Suits</div>
-        </Link>
+        <button onClick={() => navigate("/socks")}>
+          Socks
+        </button>
 
-        <Link to="/socks" style={linkStyle}>
-          <div style={cardStyle}>Socks</div>
-        </Link>
+        <button onClick={() => navigate("/tracksuits")}>
+          Tracksuits
+        </button>
       </div>
     </div>
   );
 }
-
-const cardStyle = {
-  backgroundColor: "white",
-  padding: "30px",
-  borderRadius: "10px",
-  boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-  textAlign: "center",
-  fontSize: "20px",
-  fontWeight: "bold",
-  color: "black",
-  cursor: "pointer",
-};
-
-const linkStyle = {
-  textDecoration: "none",
-};
-
-export default SchoolUniforms;

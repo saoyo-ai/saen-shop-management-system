@@ -1,165 +1,161 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-function DailyRecords() {
+export default function DailyRecords() {
   const [records, setRecords] = useState([]);
 
   const [date, setDate] = useState("");
   const [item, setItem] = useState("");
-  const [moneyIn, setMoneyIn] = useState("");
-  const [moneyOut, setMoneyOut] = useState("");
 
-  const addRecord = () => {
+  const [cashIn, setCashIn] = useState("");
+  const [mpesaIn, setMpesaIn] = useState("");
+  const [cashOut, setCashOut] = useState("");
+  const [mpesaOut, setMpesaOut] = useState("");
+
+  useEffect(() => {
+    fetchRecords();
+  }, []);
+
+  const fetchRecords = async () => {
+    const { data } = await supabase
+      .from("daily_records")
+      .select("*")
+      .eq("saved", false)
+      .order("id", { ascending: false });
+
+    setRecords(data || []);
+  };
+
+  const addRecord = async () => {
     if (!date || !item) {
-      alert("Please enter date and item");
+      alert("Date and Item required");
       return;
     }
 
-    const newRecord = {
-      date,
-      item,
-      moneyIn,
-      moneyOut,
-    };
+    const { error } = await supabase.from("daily_records").insert([
+      {
+        date,
+        item_service: item,
+        cash_in: Number(cashIn || 0),
+        mpesa_in: Number(mpesaIn || 0),
+        cash_out: Number(cashOut || 0),
+        mpesa_out: Number(mpesaOut || 0),
+        saved: false,
+      },
+    ]);
 
-    setRecords([...records, newRecord]);
+    if (error) return alert(error.message);
+
+    fetchRecords();
 
     setItem("");
-    setMoneyIn("");
-    setMoneyOut("");
+    setCashIn("");
+    setMpesaIn("");
+    setCashOut("");
+    setMpesaOut("");
   };
 
-  const saveFullDay = () => {
-    if (records.length === 0) {
-      alert("No records to save");
-      return;
-    }
+  const deleteRecord = async (id) => {
+    await supabase.from("daily_records").delete().eq("id", id);
+    fetchRecords();
+  };
 
-    const existingHistory =
-      JSON.parse(localStorage.getItem("recordHistory")) || [];
+  // 🔥 SAVE DAY = CLOSE SESSION
+  const saveDailyRecords = async () => {
+    if (!date) return alert("Select date first");
 
-    const updatedHistory = [...existingHistory, ...records];
+    const { error } = await supabase
+      .from("daily_records")
+      .update({ saved: true })
+      .eq("date", date)
+      .eq("saved", false);
 
-    localStorage.setItem(
-      "recordHistory",
-      JSON.stringify(updatedHistory)
-    );
+    if (error) return alert(error.message);
 
-    alert("Full day records saved");
+    alert("Day saved successfully!");
 
+    // 🔥 RESET UI (VERY IMPORTANT)
     setRecords([]);
+    setDate("");
+    setItem("");
+    setCashIn("");
+    setMpesaIn("");
+    setCashOut("");
+    setMpesaOut("");
+
+    fetchRecords();
   };
+
+  const totalCashIn = records.reduce((s, r) => s + Number(r.cash_in || 0), 0);
+  const totalMpesaIn = records.reduce((s, r) => s + Number(r.mpesa_in || 0), 0);
+  const totalCashOut = records.reduce((s, r) => s + Number(r.cash_out || 0), 0);
+  const totalMpesaOut = records.reduce((s, r) => s + Number(r.mpesa_out || 0), 0);
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: 20 }}>
       <h1>Daily Records</h1>
 
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "20px",
-          borderRadius: "10px",
-          marginBottom: "30px",
-        }}
-      >
-        <h2>Add Transaction</h2>
+      {/* INPUT */}
+      <div style={{ marginBottom: 20 }}>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <input placeholder="Item" value={item} onChange={(e) => setItem(e.target.value)} />
 
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={inputStyle}
-        />
+        <input placeholder="Cash In" value={cashIn} onChange={(e) => setCashIn(e.target.value)} />
+        <input placeholder="M-Pesa In" value={mpesaIn} onChange={(e) => setMpesaIn(e.target.value)} />
+        <input placeholder="Cash Out" value={cashOut} onChange={(e) => setCashOut(e.target.value)} />
+        <input placeholder="M-Pesa Out" value={mpesaOut} onChange={(e) => setMpesaOut(e.target.value)} />
 
-        <input
-          type="text"
-          placeholder="Item or Service"
-          value={item}
-          onChange={(e) => setItem(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          type="number"
-          placeholder="Money In"
-          value={moneyIn}
-          onChange={(e) => setMoneyIn(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          type="number"
-          placeholder="Money Out"
-          value={moneyOut}
-          onChange={(e) => setMoneyOut(e.target.value)}
-          style={inputStyle}
-        />
-
-        <button onClick={addRecord} style={buttonStyle}>
-          Add Record
-        </button>
+        <button onClick={addRecord}>Add</button>
       </div>
 
-      <h2>Today's Records</h2>
-
-      <table
-        border="1"
-        cellPadding="10"
-        style={tableStyle}
-      >
+      {/* TABLE */}
+      <table border="1" cellPadding="10" width="100%">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Item / Service</th>
-            <th>Money In</th>
-            <th>Money Out</th>
+            <th>Item</th>
+            <th>Cash In</th>
+            <th>M-Pesa In</th>
+            <th>Cash Out</th>
+            <th>M-Pesa Out</th>
+            <th>Action</th>
           </tr>
         </thead>
 
         <tbody>
-          {records.map((record, index) => (
-            <tr key={index}>
-              <td>{record.date}</td>
-              <td>{record.item}</td>
-              <td>{record.moneyIn}</td>
-              <td>{record.moneyOut}</td>
+          {records.map((r) => (
+            <tr key={r.id}>
+              <td>{r.item_service}</td>
+              <td>{r.cash_in}</td>
+              <td>{r.mpesa_in}</td>
+              <td>{r.cash_out}</td>
+              <td>{r.mpesa_out}</td>
+              <td>
+                <button onClick={() => deleteRecord(r.id)}>Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>
+
+        <tfoot>
+          <tr style={{ fontWeight: "bold" }}>
+            <td>TOTALS</td>
+            <td>{totalCashIn}</td>
+            <td>{totalMpesaIn}</td>
+            <td>{totalCashOut}</td>
+            <td>{totalMpesaOut}</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
 
-      <div style={{ marginTop: "30px" }}>
-        <button onClick={saveFullDay} style={saveDayButtonStyle}>
-          Save Full Day Records
-        </button>
-      </div>
+      <br />
+
+      <button
+        onClick={saveDailyRecords}
+        style={{ background: "green", color: "white", padding: 10 }}
+      >
+        Save Full Day Records
+      </button>
     </div>
   );
 }
-
-const inputStyle = {
-  padding: "10px",
-  marginRight: "10px",
-  marginBottom: "10px",
-};
-
-const buttonStyle = {
-  padding: "10px 20px",
-  cursor: "pointer",
-};
-
-const saveDayButtonStyle = {
-  padding: "15px 30px",
-  backgroundColor: "green",
-  color: "white",
-  border: "none",
-  cursor: "pointer",
-  fontSize: "16px",
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  backgroundColor: "white",
-};
-
-export default DailyRecords;

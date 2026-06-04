@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-export default function ExerciseBooks() {
+export default function Stationeries() {
   const [items, setItems] = useState([]);
 
-  const [bookType, setBookType] = useState("");
-  const [pages, setPages] = useState("");
+  const [itemName, setItemName] = useState("");
   const [stock, setStock] = useState("");
 
   useEffect(() => {
@@ -16,7 +15,7 @@ export default function ExerciseBooks() {
     const { data, error } = await supabase
       .from("inventory")
       .select("*")
-      .eq("category", "exercise_books")
+      .eq("category", "stationeries")
       .order("id", { ascending: false });
 
     if (error) {
@@ -28,16 +27,15 @@ export default function ExerciseBooks() {
   };
 
   const addItem = async () => {
-    if (!bookType || !pages || !stock) {
+    if (!itemName || !stock) {
       alert("Fill all fields");
       return;
     }
 
     const { error } = await supabase.from("inventory").insert([
       {
-        category: "exercise_books",
-        book_name: bookType,
-        pages: pages,
+        category: "stationeries",
+        item_name: itemName,
         stock: Number(stock),
       },
     ]);
@@ -48,9 +46,7 @@ export default function ExerciseBooks() {
     }
 
     fetchItems();
-
-    setBookType("");
-    setPages("");
+    setItemName("");
     setStock("");
   };
 
@@ -91,20 +87,13 @@ export default function ExerciseBooks() {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h1>Exercise Books Inventory</h1>
+      <h1>Stationeries Inventory</h1>
 
-      {/* FORM */}
       <div style={{ marginBottom: "20px" }}>
         <input
-          placeholder="Type (A4 / A5)"
-          value={bookType}
-          onChange={(e) => setBookType(e.target.value)}
-        />
-
-        <input
-          placeholder="Pages (64 / 96 / 128)"
-          value={pages}
-          onChange={(e) => setPages(e.target.value)}
+          placeholder="Item Name"
+          value={itemName}
+          onChange={(e) => setItemName(e.target.value)}
         />
 
         <input
@@ -114,15 +103,13 @@ export default function ExerciseBooks() {
           onChange={(e) => setStock(e.target.value)}
         />
 
-        <button onClick={addItem}>Add Exercise Book</button>
+        <button onClick={addItem}>Add Item</button>
       </div>
 
-      {/* TABLE */}
       <table border="1" cellPadding="10">
         <thead>
           <tr>
-            <th>Type</th>
-            <th>Pages</th>
+            <th>Item</th>
             <th>Stock</th>
             <th>Actions</th>
           </tr>
@@ -131,31 +118,23 @@ export default function ExerciseBooks() {
         <tbody>
           {items.length === 0 ? (
             <tr>
-              <td colSpan="4">No exercise books found</td>
+              <td colSpan="3">No items found</td>
             </tr>
           ) : (
             items.map((item) => (
               <tr key={item.id}>
-                <td>{item.book_name}</td>
-                <td>{item.pages}</td>
+                <td>{item.item_name}</td>
                 <td>{item.stock}</td>
-
                 <td>
                   <button onClick={() => updateStock(item.id, item.stock, -1)}>
                     -1
                   </button>
 
-                  <button
-                    onClick={() => updateStock(item.id, item.stock, 1)}
-                    style={{ marginLeft: "5px" }}
-                  >
+                  <button onClick={() => updateStock(item.id, item.stock, 1)}>
                     +1
                   </button>
 
-                  <button
-                    onClick={() => deleteItem(item.id)}
-                    style={{ marginLeft: "5px" }}
-                  >
+                  <button onClick={() => deleteItem(item.id)}>
                     Delete
                   </button>
                 </td>

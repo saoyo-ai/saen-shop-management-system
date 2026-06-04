@@ -1,39 +1,104 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-function Setbooks() {
-  const [inventory, setInventory] = useState([]);
+export default function Setbooks() {
+  const [books, setBooks] = useState([]);
 
-  const [title, setTitle] = useState("");
+  const [bookName, setBookName] = useState("");
   const [stock, setStock] = useState("");
 
-  const addInventory = () => {
-    if (!title || !stock) {
-      alert("Please fill all fields");
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    const { data, error } = await supabase
+      .from("inventory")
+      .select("*")
+      .eq("category", "setbooks")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error(error.message);
       return;
     }
 
-    const newItem = {
-      title,
-      stock,
-    };
+    setBooks(data || []);
+  };
 
-    setInventory([...inventory, newItem]);
+  const addBook = async () => {
+    if (!bookName || !stock) {
+      alert("Fill all fields");
+      return;
+    }
 
-    setTitle("");
+    const { error } = await supabase
+      .from("inventory")
+      .insert([
+        {
+          category: "setbooks",
+          book_name: bookName,
+          stock: Number(stock),
+        },
+      ]);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchBooks();
+
+    setBookName("");
     setStock("");
+  };
+
+  const updateStock = async (id, currentStock, change) => {
+    const newStock = currentStock + change;
+
+    if (newStock < 0) {
+      alert("Stock cannot go below zero");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("inventory")
+      .update({
+        stock: newStock,
+      })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchBooks();
+  };
+
+  const deleteBook = async (id) => {
+    const { error } = await supabase
+      .from("inventory")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchBooks();
   };
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>Setbooks Inventory</h1>
 
-      <div style={formStyle}>
+      <div style={{ marginBottom: "20px" }}>
         <input
-          type="text"
-          placeholder="Book Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={inputStyle}
+          placeholder="Book Name"
+          value={bookName}
+          onChange={(e) => setBookName(e.target.value)}
         />
 
         <input
@@ -41,53 +106,65 @@ function Setbooks() {
           placeholder="Stock"
           value={stock}
           onChange={(e) => setStock(e.target.value)}
-          style={inputStyle}
         />
 
-        <button onClick={addInventory} style={buttonStyle}>
-          Add Stock
+        <button onClick={addBook}>
+          Add Setbook
         </button>
       </div>
 
-      <table border="1" cellPadding="10" style={tableStyle}>
+      <table border="1" cellPadding="10">
         <thead>
           <tr>
-            <th>Book Title</th>
+            <th>Book Name</th>
             <th>Stock</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
-          {inventory.map((item, index) => (
-            <tr key={index}>
-              <td>{item.title}</td>
-              <td>{item.stock}</td>
+          {books.length === 0 ? (
+            <tr>
+              <td colSpan="3">
+                No setbooks found
+              </td>
             </tr>
-          ))}
+          ) : (
+            books.map((book) => (
+              <tr key={book.id}>
+                <td>{book.book_name}</td>
+                <td>{book.stock}</td>
+
+                <td>
+                  <button
+                    onClick={() =>
+                      updateStock(book.id, book.stock, -1)
+                    }
+                  >
+                    -1
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      updateStock(book.id, book.stock, 1)
+                    }
+                    style={{ marginLeft: "5px" }}
+                  >
+                    +1
+                  </button>
+
+                  <button
+                    onClick={() => deleteBook(book.id)}
+                    style={{ marginLeft: "5px" }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
   );
 }
-
-const formStyle = {
-  marginBottom: "20px",
-};
-
-const inputStyle = {
-  padding: "10px",
-  marginRight: "10px",
-};
-
-const buttonStyle = {
-  padding: "10px 20px",
-  cursor: "pointer",
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  backgroundColor: "white",
-};
-
-export default Setbooks;

@@ -1,50 +1,109 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-function Shirts() {
-  const [inventory, setInventory] = useState([]);
+export default function Shirts() {
+  const [items, setItems] = useState([]);
 
   const [size, setSize] = useState("");
   const [color, setColor] = useState("");
   const [stock, setStock] = useState("");
 
-  const addInventory = () => {
-    if (!size || !color || !stock) {
-      alert("Please fill all fields");
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    const { data, error } = await supabase
+      .from("inventory")
+      .select("*")
+      .eq("category", "shirts")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error(error.message);
       return;
     }
 
-    const newItem = {
-      size,
-      color,
-      stock,
-    };
+    setItems(data || []);
+  };
 
-    setInventory([...inventory, newItem]);
+  const addItem = async () => {
+    if (!size || !color || !stock) {
+      alert("Fill all fields");
+      return;
+    }
+
+    const { error } = await supabase.from("inventory").insert([
+      {
+        category: "shirts",
+        size,
+        color,
+        stock: Number(stock),
+      },
+    ]);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
 
     setSize("");
     setColor("");
     setStock("");
   };
 
+  const updateStock = async (id, currentStock, change) => {
+    const newStock = currentStock + change;
+
+    if (newStock < 0) {
+      alert("Stock cannot go below 0");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("inventory")
+      .update({ stock: newStock })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
+  };
+
+  const deleteItem = async (id) => {
+    const { error } = await supabase
+      .from("inventory")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
+  };
+
   return (
     <div style={{ padding: "20px" }}>
       <h1>Shirts Inventory</h1>
 
-      <div style={formStyle}>
+      <div style={{ marginBottom: "20px" }}>
         <input
-          type="text"
           placeholder="Size"
           value={size}
           onChange={(e) => setSize(e.target.value)}
-          style={inputStyle}
         />
 
         <input
-          type="text"
           placeholder="Color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
-          style={inputStyle}
         />
 
         <input
@@ -52,55 +111,57 @@ function Shirts() {
           placeholder="Stock"
           value={stock}
           onChange={(e) => setStock(e.target.value)}
-          style={inputStyle}
         />
 
-        <button onClick={addInventory} style={buttonStyle}>
-          Add Stock
-        </button>
+        <button onClick={addItem}>Add Shirt</button>
       </div>
 
-      <table border="1" cellPadding="10" style={tableStyle}>
+      <table border="1" cellPadding="10">
         <thead>
           <tr>
             <th>Size</th>
             <th>Color</th>
             <th>Stock</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
-          {inventory.map((item, index) => (
-            <tr key={index}>
-              <td>{item.size}</td>
-              <td>{item.color}</td>
-              <td>{item.stock}</td>
+          {items.length === 0 ? (
+            <tr>
+              <td colSpan="4">No shirts found</td>
             </tr>
-          ))}
+          ) : (
+            items.map((item) => (
+              <tr key={item.id}>
+                <td>{item.size}</td>
+                <td>{item.color}</td>
+                <td>{item.stock}</td>
+
+                <td>
+                  <button onClick={() => updateStock(item.id, item.stock, -1)}>
+                    -1
+                  </button>
+
+                  <button
+                    onClick={() => updateStock(item.id, item.stock, 1)}
+                    style={{ marginLeft: "5px" }}
+                  >
+                    +1
+                  </button>
+
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    style={{ marginLeft: "5px" }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
   );
 }
-
-const formStyle = {
-  marginBottom: "20px",
-};
-
-const inputStyle = {
-  padding: "10px",
-  marginRight: "10px",
-};
-
-const buttonStyle = {
-  padding: "10px 20px",
-  cursor: "pointer",
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  backgroundColor: "white",
-};
-
-export default Shirts;

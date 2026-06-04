@@ -1,50 +1,109 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-function JuniorBooks() {
-  const [inventory, setInventory] = useState([]);
+export default function JuniorBooks() {
+  const [items, setItems] = useState([]);
 
-  const [title, setTitle] = useState("");
+  const [bookName, setBookName] = useState("");
   const [grade, setGrade] = useState("");
   const [stock, setStock] = useState("");
 
-  const addInventory = () => {
-    if (!title || !grade || !stock) {
-      alert("Please fill all fields");
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    const { data, error } = await supabase
+      .from("inventory")
+      .select("*")
+      .eq("category", "junior_books")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error(error.message);
       return;
     }
 
-    const newItem = {
-      title,
-      grade,
-      stock,
-    };
+    setItems(data || []);
+  };
 
-    setInventory([...inventory, newItem]);
+  const addItem = async () => {
+    if (!bookName || !grade || !stock) {
+      alert("Fill all fields");
+      return;
+    }
 
-    setTitle("");
+    const { error } = await supabase.from("inventory").insert([
+      {
+        category: "junior_books",
+        book_name: bookName,
+        grade: grade,
+        stock: Number(stock),
+      },
+    ]);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
+
+    setBookName("");
     setGrade("");
     setStock("");
+  };
+
+  const updateStock = async (id, currentStock, change) => {
+    const newStock = currentStock + change;
+
+    if (newStock < 0) {
+      alert("Stock cannot go below 0");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("inventory")
+      .update({ stock: newStock })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
+  };
+
+  const deleteItem = async (id) => {
+    const { error } = await supabase
+      .from("inventory")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchItems();
   };
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>Junior & Lower Primary Books</h1>
 
-      <div style={formStyle}>
+      <div style={{ marginBottom: "20px" }}>
         <input
-          type="text"
-          placeholder="Book Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={inputStyle}
+          placeholder="Book Name"
+          value={bookName}
+          onChange={(e) => setBookName(e.target.value)}
         />
 
         <input
-          type="text"
           placeholder="Grade"
           value={grade}
           onChange={(e) => setGrade(e.target.value)}
-          style={inputStyle}
         />
 
         <input
@@ -52,55 +111,67 @@ function JuniorBooks() {
           placeholder="Stock"
           value={stock}
           onChange={(e) => setStock(e.target.value)}
-          style={inputStyle}
         />
 
-        <button onClick={addInventory} style={buttonStyle}>
-          Add Stock
+        <button onClick={addItem}>
+          Add Book
         </button>
       </div>
 
-      <table border="1" cellPadding="10" style={tableStyle}>
+      <table border="1" cellPadding="10">
         <thead>
           <tr>
-            <th>Book Title</th>
+            <th>Book Name</th>
             <th>Grade</th>
             <th>Stock</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
-          {inventory.map((item, index) => (
-            <tr key={index}>
-              <td>{item.title}</td>
-              <td>{item.grade}</td>
-              <td>{item.stock}</td>
+          {items.length === 0 ? (
+            <tr>
+              <td colSpan="4">
+                No books found
+              </td>
             </tr>
-          ))}
+          ) : (
+            items.map((item) => (
+              <tr key={item.id}>
+                <td>{item.book_name}</td>
+                <td>{item.grade}</td>
+                <td>{item.stock}</td>
+
+                <td>
+                  <button
+                    onClick={() =>
+                      updateStock(item.id, item.stock, -1)
+                    }
+                  >
+                    -1
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      updateStock(item.id, item.stock, 1)
+                    }
+                    style={{ marginLeft: "5px" }}
+                  >
+                    +1
+                  </button>
+
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    style={{ marginLeft: "5px" }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
   );
 }
-
-const formStyle = {
-  marginBottom: "20px",
-};
-
-const inputStyle = {
-  padding: "10px",
-  marginRight: "10px",
-};
-
-const buttonStyle = {
-  padding: "10px 20px",
-  cursor: "pointer",
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  backgroundColor: "white",
-};
-
-export default JuniorBooks;

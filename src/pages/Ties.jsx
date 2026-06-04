@@ -1,39 +1,109 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-function Ties() {
-  const [inventory, setInventory] = useState([]);
+export default function Ties() {
+  const [ties, setTies] = useState([]);
 
   const [color, setColor] = useState("");
+  const [stripsColor, setStripsColor] = useState("");
   const [stock, setStock] = useState("");
 
-  const addInventory = () => {
-    if (!color || !stock) {
-      alert("Please fill all fields");
+  useEffect(() => {
+    fetchTies();
+  }, []);
+
+  const fetchTies = async () => {
+    const { data, error } = await supabase
+      .from("inventory")
+      .select("*")
+      .eq("category", "ties")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error(error.message);
       return;
     }
 
-    const newItem = {
-      color,
-      stock,
-    };
+    setTies(data || []);
+  };
 
-    setInventory([...inventory, newItem]);
+  const addTie = async () => {
+    if (!color || !stripsColor || !stock) {
+      alert("Fill all fields");
+      return;
+    }
+
+    const { error } = await supabase.from("inventory").insert([
+      {
+        category: "ties",
+        color,
+        strips_color: stripsColor,
+        stock: Number(stock),
+      },
+    ]);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await fetchTies();
 
     setColor("");
+    setStripsColor("");
     setStock("");
+  };
+
+  const updateStock = async (id, currentStock, change) => {
+    const newStock = currentStock + change;
+
+    if (newStock < 0) {
+      alert("Stock cannot go below 0");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("inventory")
+      .update({ stock: newStock })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchTies();
+  };
+
+  const deleteItem = async (id) => {
+    const { error } = await supabase
+      .from("inventory")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    fetchTies();
   };
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>Ties Inventory</h1>
 
-      <div style={formStyle}>
+      <div style={{ marginBottom: "20px" }}>
         <input
-          type="text"
           placeholder="Color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
-          style={inputStyle}
+        />
+
+        <input
+          placeholder="Strips Color"
+          value={stripsColor}
+          onChange={(e) => setStripsColor(e.target.value)}
         />
 
         <input
@@ -41,27 +111,49 @@ function Ties() {
           placeholder="Stock"
           value={stock}
           onChange={(e) => setStock(e.target.value)}
-          style={inputStyle}
         />
 
-        <button onClick={addInventory} style={buttonStyle}>
-          Add Stock
+        <button onClick={addTie}>
+          Add Tie
         </button>
       </div>
 
-      <table border="1" cellPadding="10" style={tableStyle}>
+      <table border="1" cellPadding="10">
         <thead>
           <tr>
             <th>Color</th>
+            <th>Strips Color</th>
             <th>Stock</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
-          {inventory.map((item, index) => (
-            <tr key={index}>
+          {ties.map((item) => (
+            <tr key={item.id}>
               <td>{item.color}</td>
+              <td>{item.strips_color}</td>
               <td>{item.stock}</td>
+
+              <td>
+                <button onClick={() => updateStock(item.id, item.stock, -1)}>
+                  -1
+                </button>
+
+                <button
+                  onClick={() => updateStock(item.id, item.stock, 1)}
+                  style={{ marginLeft: "5px" }}
+                >
+                  +1
+                </button>
+
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  style={{ marginLeft: "5px" }}
+                >
+                  Delete
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -69,25 +161,3 @@ function Ties() {
     </div>
   );
 }
-
-const formStyle = {
-  marginBottom: "20px",
-};
-
-const inputStyle = {
-  padding: "10px",
-  marginRight: "10px",
-};
-
-const buttonStyle = {
-  padding: "10px 20px",
-  cursor: "pointer",
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  backgroundColor: "white",
-};
-
-export default Ties;
