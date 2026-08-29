@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import RecordHistory from "./pages/RecordHistory";
 import DailyRecords from "./pages/DailyRecords";
-import Login from "./pages/Login";
+import Login from "./pages/login";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
